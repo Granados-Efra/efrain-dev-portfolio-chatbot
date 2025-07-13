@@ -133,3 +133,7 @@ CORS_ALLOW_ALL_ORIGINS = True  # ⚠️ Temporarily allow all origins (for devel
 # CORS_ALLOWED_ORIGINS = [
 #     "https://MY-FRONTEND.vercel.app",  # ← Uncomment and replace with your frontend domain when ready
 # ]
+
+# Session configuration for production
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"

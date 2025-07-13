@@ -35,8 +35,12 @@ def extract_resume_text():
 def make_question(request):
     if request.method == 'POST':
         try:
-            if not request.session.session_key:
-                request.session.create()
+            # Try to create session if there's not one
+            try:
+                if not request.session.session_key:
+                    request.session.create()
+            except Exception as e:
+                print("Session creation error:", e)
 
             data = json.loads(request.body)
             question = data.get('question')
@@ -45,14 +49,16 @@ def make_question(request):
 
             resume_text = extract_resume_text()
 
-            # Check error reading PDF
             if resume_text.startswith("Error") or resume_text.startswith("Resume file not found"):
                 return JsonResponse({
                     'error': 'Resume could not be loaded',
                     'details': resume_text
                 }, status=500)
 
-            chat_history = request.session.get("chat_history", [])
+            try:
+                chat_history = request.session.get("chat_history", [])
+            except Exception:
+                chat_history = []
 
             # Gemini Chat history
             context = "\n".join(
@@ -78,12 +84,15 @@ User: {question}
             model = genai.GenerativeModel("gemini-1.5-flash")
             response = model.generate_content(prompt)
 
-            # Conversation Session storage
             chat_history.append({
                 "user": question,
                 "assistant": response.text.strip()
             })
-            request.session["chat_history"] = chat_history
+
+            try:
+                request.session["chat_history"] = chat_history
+            except Exception as e:
+                print("Session save error:", e)
 
             return JsonResponse({
                 'question': question,
@@ -99,7 +108,11 @@ User: {question}
 @csrf_exempt
 def reset_conversation(request):
     if request.method == 'POST':
-        request.session["chat_history"] = []
+        try:
+            if request.session is not None:
+                request.session["chat_history"] = []
+        except Exception as e:
+            return JsonResponse({'error': 'Session error', 'details': str(e)}, status=500)
         return JsonResponse({'message': 'Conversation reset successfully'})
     return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
 
