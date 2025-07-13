@@ -1,0 +1,87 @@
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+import fitz  # PyMuPDF
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # Get key from env
+
+# Gemini API Key
+genai.configure(api_key=GEMINI_API_KEY)
+
+def extract_resume_text():
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pdf_path = os.path.join(base_dir, 'chatbot', 'data', 'Efrain_Granados_Frontend_Engineer_Resume_July_2025.pdf')
+    doc = fitz.open(pdf_path)
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    return text.strip()
+
+@csrf_exempt
+def make_question(request):
+    if request.method == 'POST':
+        try:
+            if not request.session.session_key:
+                request.session.create()
+
+            data = json.loads(request.body)
+            question = data.get('question')
+            if not question:
+                return JsonResponse({'error': 'No question provided'}, status=400)
+
+            resume_text = extract_resume_text()
+            chat_history = request.session.get("chat_history", [])
+
+            # Historial de conversación para Gemini
+            context = "\n".join(
+                [f"User: {entry['user']}\nAssistant: {entry['assistant']}" for entry in chat_history]
+            )
+
+            prompt = f"""
+You are a professional assistant who knows Efraín Granados very well. You have access to his resume and can answer questions about his experience, technologies, and skills.
+
+Please respond in a professional and concise tone, avoiding repetition. Structure the answer clearly and use confident, natural language. Refer to him in the third person (e.g., "Efraín has experience with...", "He has contributed to...").
+
+Use only the information from the resume below. Do not make up facts. If the information is not in the resume, respond with: "The resume does not mention this information."
+
+Resume:
+{resume_text}
+
+Previous conversation:
+{context}
+
+User: {question}
+"""
+
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt)
+
+            # Guarda el intercambio en la sesión
+            chat_history.append({
+                "user": question,
+                "assistant": response.text.strip()
+            })
+            request.session["chat_history"] = chat_history
+
+            return JsonResponse({
+                'question': question,
+                'response': response.text.strip()
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+@csrf_exempt
+def reset_conversation(request):
+    if request.method == 'POST':
+        request.session["chat_history"] = []
+        return JsonResponse({'message': 'Conversation reset successfully'})
+
