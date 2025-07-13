@@ -129,7 +129,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = True  # ⚠️ Temporarily allow all origins (for development/testing only)
-# CORS_ALLOWED_ORIGINS = [
-#     "https://MY-FRONTEND.vercel.app",  # ← Uncomment and replace with your frontend domain when ready
-# ]
+CORS_ALLOWED_ORIGINS = [
+    "*",  # ← Uncomment and replace with your frontend domain when ready
+]
