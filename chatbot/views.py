@@ -85,3 +85,5 @@ def reset_conversation(request):
         request.session["chat_history"] = []
         return JsonResponse({'message': 'Conversation reset successfully'})
 
+def health_check(request):
+    return JsonResponse({"status": "ok"})

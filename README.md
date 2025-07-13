@@ -17,12 +17,12 @@ This is a lightweight Django-based API that connects to a conversational AI assi
 ## 📁 Project Structure
 
 ```
-help_bot_api/
+api/
 ├── chatbot/
 │   ├── views.py          # Handles AI prompt + PDF extraction
 │   ├── urls.py           # /ask and /reset endpoints
 │   └── data/             # Resume PDF stored here
-├── help_bot_api/
+├── api/
 │   ├── settings.py       # Core Django settings
 │   └── urls.py           # Root URL routing
 ├── .env                  # API keys and secrets (not committed)
