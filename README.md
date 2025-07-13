@@ -1,6 +1,6 @@
-# 💬 Efraín Granados Resume Chatbot API
+# 💬 Efrain Granados Resume Chatbot API
 
-This is a lightweight Django-based API that connects to a conversational AI assistant trained on the resume of **Efraín Granados**. It uses **Gemini 1.5 Flash** to answer questions related to his professional background, experience, and technical skills.
+This is a lightweight Django-based API that connects to a conversational AI assistant trained on the resume of **Efrain Granados**. It uses **Gemini 1.5 Flash** to answer questions related to his professional background, experience, and technical skills.
 
 ---
 
