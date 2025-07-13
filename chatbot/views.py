@@ -6,7 +6,6 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # Get key from env
@@ -14,14 +13,23 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # Get key from env
 # Gemini API Key
 genai.configure(api_key=GEMINI_API_KEY)
 
+
 def extract_resume_text():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     pdf_path = os.path.join(base_dir, 'chatbot', 'data', 'Efrain_Granados_Frontend_Engineer_Resume_July_2025.pdf')
-    doc = fitz.open(pdf_path)
-    text = ""
-    for page in doc:
-        text += page.get_text()
-    return text.strip()
+
+    if not os.path.exists(pdf_path):
+        return "Resume file not found."
+
+    try:
+        doc = fitz.open(pdf_path)
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        return text.strip()
+    except Exception as e:
+        return f"Error reading resume: {str(e)}"
+
 
 @csrf_exempt
 def make_question(request):
@@ -36,9 +44,17 @@ def make_question(request):
                 return JsonResponse({'error': 'No question provided'}, status=400)
 
             resume_text = extract_resume_text()
+
+            # Check error reading PDF
+            if resume_text.startswith("Error") or resume_text.startswith("Resume file not found"):
+                return JsonResponse({
+                    'error': 'Resume could not be loaded',
+                    'details': resume_text
+                }, status=500)
+
             chat_history = request.session.get("chat_history", [])
 
-            # Historial de conversación para Gemini
+            # Gemini Chat history
             context = "\n".join(
                 [f"User: {entry['user']}\nAssistant: {entry['assistant']}" for entry in chat_history]
             )
@@ -62,7 +78,7 @@ User: {question}
             model = genai.GenerativeModel("gemini-1.5-flash")
             response = model.generate_content(prompt)
 
-            # Guarda el intercambio en la sesión
+            # Conversation Session storage
             chat_history.append({
                 "user": question,
                 "assistant": response.text.strip()
@@ -79,11 +95,14 @@ User: {question}
 
     return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
 
+
 @csrf_exempt
 def reset_conversation(request):
     if request.method == 'POST':
         request.session["chat_history"] = []
         return JsonResponse({'message': 'Conversation reset successfully'})
+    return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
 
 def health_check(request):
     return JsonResponse({"status": "ok"})
